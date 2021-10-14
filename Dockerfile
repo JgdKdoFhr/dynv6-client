@@ -2,8 +2,7 @@ FROM python:3
 MAINTAINER Daniel Starzmann <daniel@starze.de>
 WORKDIR /usr/src/app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir certifi click netifaces requests
 
 COPY client.py client.py
 
