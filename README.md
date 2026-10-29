@@ -3,7 +3,7 @@
 A small client that keeps the A and AAAA records of a [dynv6.com](https://dynv6.com/) zone pointed at your current addresses. It runs as a container on amd64, arm64 and arm/v7 (e.g. Raspberry Pi).
 
 > [!NOTE]
-> **This build is maintained mainly by AI.** Code changes, the build pipeline and the documentation in this fork are written by an AI coding assistant (Claude, via Claude Code), and a human reviews and merges them. Dependabot proposes dependency updates automatically. Review the code before you rely on it.
+> **This build is maintained mainly by AI.** Code changes, the build pipeline and the documentation in this fork are written by an AI coding assistant (Claude, via Claude Code), and a human reviews and merges them. Minor and patch dependency updates from Dependabot are merged and released automatically once the tests pass, without a human review. Review the code before you rely on it.
 
 ## How it works
 
@@ -63,18 +63,51 @@ services:
 
 ## Image tags
 
-Images are published to `ghcr.io/jgdkdofhr/dynv6-client` by GitHub Actions:
+GitHub Actions publishes the images to `ghcr.io/jgdkdofhr/dynv6-client` for amd64, arm64 and arm/v7. Release images carry an SBOM and build provenance.
 
-- `latest`: the current `main` branch
-- `sha-<commit>`: every build from `main`
-- `X.Y.Z` and `X.Y`: release tags `vX.Y.Z`
+| Tag | Points to |
+|---|---|
+| `latest` | the current `main` branch |
+| `sha-<commit>` | one build from `main` |
+| `X.Y.Z` | a release |
+| `X.Y`, `X` | the newest release of that minor or major version (`X` only from 1.0.0 on) |
 
-Dependabot checks weekly for new versions of the Python packages, the Python base image and the GitHub Actions. Merging its pull requests publishes a new `latest`.
+To get updates without breaking changes, use the major tag, e.g. `ghcr.io/jgdkdofhr/dynv6-client:1`.
+
+## Releases
+
+Releases are started from the Actions tab: **release** → **Run workflow**. Choose which part of the version to increase (`patch`, `minor` or `major`), or enter an exact version. The workflow then:
+
+1. works out the next version from the newest `vX.Y.Z` tag
+2. builds and pushes the image with the version tags
+3. creates the tag and a GitHub release, with notes generated from the pull requests merged since the last release
+
+If the image build fails, no tag or release is created. Changes pushed straight to `main` without a pull request don't appear in the release notes.
+
+Pushing a `vX.Y.Z` tag yourself also publishes version-tagged images, but doesn't create a GitHub release.
+
+## Dependency updates
+
+Dependabot checks weekly for new versions of the Python packages, the Python base image and the GitHub Actions. A new version is only proposed once it is 7 days old (3 days for the base image). Security fixes are proposed right away.
+
+| Update | What happens |
+|---|---|
+| Python packages, minor or patch (one grouped pull request) | merged once the build and tests pass, then released as a new patch version |
+| Python base image, new digest or minor version | merged once the build and tests pass, then released as a new patch version |
+| Any major version | stays open for manual review |
+| GitHub Actions | stays open for manual review, because a workflow can't merge changes to workflow files with its own token. No release is needed, since the image doesn't change. |
+
+All Python dependencies, indirect ones included, are pinned with hashes in `requirements.txt`. It is compiled from `requirements.in` with pip-tools 7.5, the version Dependabot uses:
+
+```bash
+pip-compile --generate-hashes --strip-extras requirements.in
+```
 
 ## Build locally
 
 ```bash
 docker build -t dynv6-client .
+docker run --rm -v "$PWD/test_client.py:/usr/src/app/test_client.py:ro" --entrypoint python dynv6-client -m unittest -v test_client
 ```
 
 ## Credits

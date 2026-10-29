@@ -1,0 +1,52 @@
+name: dependabot
+
+# Merges Dependabot pull requests for the Python packages and the base image once
+# the build and tests passed, then releases them as a patch version. Major updates
+# and GitHub Actions updates (GITHUB_TOKEN can't merge changes to workflow files)
+# stay open for manual review.
+
+on:
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      (startsWith(github.event.workflow_run.head_branch, 'dependabot/pip/') ||
+       startsWith(github.event.workflow_run.head_branch, 'dependabot/docker/'))
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -z "$pr" ]; then
+            echo "no open pull request for $BRANCH"
+            exit 0
+          fi
+          messages=$(gh pr view "$pr" --json commits --jq '.commits[].messageBody')
+          if grep -q 'update-type: version-update:semver-major' <<< "$messages"; then
+            echo "::notice::#$pr contains a major update, leaving it for manual review"
+            exit 0
+          fi
+          # fails if Dependabot pushed again in the meantime or the PR conflicts;
+          # Dependabot then rebases it, which starts a new build and another attempt
+          if ! gh pr merge "$pr" --squash --match-head-commit "$HEAD_SHA"; then
+            echo "::warning::could not merge #$pr yet"
+            exit 0
+          fi
+          # merges made with GITHUB_TOKEN don't trigger the push build, the release builds the image
+          gh workflow run release.yml --ref main -f bump=patch
+          echo "::notice::merged #$pr and started a patch release"

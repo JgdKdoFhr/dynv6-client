@@ -6,6 +6,12 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: Release version without the v prefix, e.g. 1.2.0
+        type: string
+        required: true
 
 jobs:
   build:
@@ -29,10 +35,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke test
+      - name: Test
         run: |
           docker run --rm dynv6-client:test --help
-          docker run --rm --entrypoint python dynv6-client:test -c "import client; print(client.interface_ipv6('lo'))"
+          docker run --rm -v "$PWD/test_client.py:/usr/src/app/test_client.py:ro" --entrypoint python dynv6-client:test -m unittest -v test_client
 
       - name: Image name
         id: image
@@ -44,8 +50,9 @@ jobs:
           images: ${{ steps.image.outputs.name }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+            type=semver,pattern={{major}},value=${{ inputs.version }}
             type=sha
 
       - if: github.event_name != 'pull_request'
@@ -63,5 +70,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
