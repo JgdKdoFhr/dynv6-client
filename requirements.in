@@ -1,2 +1,4 @@
+# Compile with Python 3.14 (the newest Python Dependabot has) and pip-tools 7.6, see README:
+#   pip-compile --generate-hashes --strip-extras requirements.in
 click
 requests

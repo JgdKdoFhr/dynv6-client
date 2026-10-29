@@ -97,7 +97,7 @@ Dependabot checks weekly for new versions of the Python packages, the Python bas
 | Any major version | stays open for manual review |
 | GitHub Actions | stays open for manual review, because a workflow can't merge changes to workflow files with its own token. No release is needed, since the image doesn't change. |
 
-All Python dependencies, indirect ones included, are pinned with hashes in `requirements.txt`. It is compiled from `requirements.in` with pip-tools 7.5, the version Dependabot uses:
+All Python dependencies, indirect ones included, are pinned with hashes in `requirements.txt`. It is compiled from `requirements.in` with Python 3.14 and pip-tools 7.6, the versions Dependabot uses. Dependabot can't update a file compiled with a newer Python, even though the image runs Python 3.15:
 
 ```bash
 pip-compile --generate-hashes --strip-extras requirements.in
