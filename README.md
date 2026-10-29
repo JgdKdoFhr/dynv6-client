@@ -63,13 +63,30 @@ services:
 
 ## Image tags
 
-Images are published to `ghcr.io/jgdkdofhr/dynv6-client` by GitHub Actions:
+GitHub Actions publishes the images to `ghcr.io/jgdkdofhr/dynv6-client` for amd64, arm64 and arm/v7. Release images carry an SBOM and build provenance.
 
-- `latest`: the current `main` branch
-- `sha-<commit>`: every build from `main`
-- `X.Y.Z` and `X.Y`: release tags `vX.Y.Z`
+| Tag | Points to |
+|---|---|
+| `latest` | the current `main` branch |
+| `sha-<commit>` | one build from `main` |
+| `X.Y.Z` | a release |
+| `X.Y`, `X` | the newest release of that minor or major version (`X` only from 1.0.0 on) |
+
+To get updates without breaking changes, use the major tag, e.g. `ghcr.io/jgdkdofhr/dynv6-client:1`.
 
 Dependabot checks weekly for new versions of the Python packages, the Python base image and the GitHub Actions. Merging its pull requests publishes a new `latest`.
+
+## Releases
+
+Releases are started from the Actions tab: **release** → **Run workflow**. Choose which part of the version to increase (`patch`, `minor` or `major`), or enter an exact version. The workflow then:
+
+1. works out the next version from the newest `vX.Y.Z` tag
+2. builds and pushes the image with the version tags
+3. creates the tag and a GitHub release, with notes generated from the pull requests merged since the last release
+
+If the image build fails, no tag or release is created. Changes pushed straight to `main` without a pull request don't appear in the release notes.
+
+Pushing a `vX.Y.Z` tag yourself also publishes version-tagged images, but doesn't create a GitHub release.
 
 ## Build locally
 
