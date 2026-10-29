@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /usr/src/app
 
 COPY requirements.txt .
-RUN PIP_ROOT_USER_ACTION=ignore pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
+RUN PIP_ROOT_USER_ACTION=ignore pip install --no-cache-dir --disable-pip-version-check --require-hashes -r requirements.txt
 
 COPY client.py .
 

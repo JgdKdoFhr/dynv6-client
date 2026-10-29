@@ -35,10 +35,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke test
+      - name: Test
         run: |
           docker run --rm dynv6-client:test --help
-          docker run --rm --entrypoint python dynv6-client:test -c "import client; print(client.interface_ipv6('lo'))"
+          docker run --rm -v "$PWD/test_client.py:/usr/src/app/test_client.py:ro" --entrypoint python dynv6-client:test -m unittest -v test_client
 
       - name: Image name
         id: image
